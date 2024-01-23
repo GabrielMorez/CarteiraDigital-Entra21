@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm"
-import { Wallet } from "./Wallet";
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm"
 
 @Entity()
 export class User {
@@ -20,8 +19,5 @@ export class User {
 
     @Column()
     password: string; 
-
-    @ManyToOne(() => Wallet, (wallet) => wallet)
-    wallets: Wallet[];
 }
 
