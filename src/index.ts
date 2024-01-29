@@ -7,13 +7,39 @@ import { CurrencyController } from "./controller/CurrencyController";
 import { CurrencyDTO } from "./dto/CurrencyDTO";
 import { WalletController } from "./controller/WalletController";
 import { WalletDTO } from "./dto/WalletDTO";
- 
+import { WalletTransactionController} from "./controller/TransactionController";
+import { TransactionDTO } from "./dto/TransactionDTO";
+import { SessionController } from "./controller/SessionController";
+import { log } from "console";
+
+type Token = {
+  userId: number,
+  iat: number,
+}
+
 const SERVER_PORT = 3000;
 const server = express();
-server.use(json())
+server.use(express.json());
+
+server.post("/login", async (request: Request, response: Response) => {
+  const sessionController = new SessionController();
+  try {
+    const token = await sessionController.login(
+      request.body.email,
+      request.body.password
+    );
+    return response.status(200).json({
+      token,
+    });
+  } catch (e) {
+    return response.status(400).json({
+      error: e.message,
+    });
+  }
+});
 
 server.get("", (request: Request, response: Response) => {
-    return response.send("O servidor está funcionando");
+  return response.send("O servidor está funcionando");
 });
 
 server.get("/users", async (request: Request, response: Response) => {
@@ -22,16 +48,23 @@ server.get("/users", async (request: Request, response: Response) => {
 });
 
 server.post("/users", async (request: Request, response: Response) => {
-  const userController = new UserController();
-  const newUser = await userController.createUser(new UserDTO(
-    null,
-    request.body.name,
-    request.body.document,
-    request.body.email,
-    request.body.password
-  ));
+  try{
+    const userController = new UserController();
+    const newUser = await userController.createUser(new UserDTO(
+      null,
+      request.body.name,
+      request.body.document,
+      request.body.email,
+      request.body.password
+    ));
+    
+    return response.status(201).json(newUser);
+  } catch (error){
+    console.log(error);
+    
+    return response.status(400).json(error.message)
+  }
 
-  return response.status(201).json(newUser);
 });
 
 server.get("/currencys", async (request: Request, response: Response) => {
@@ -66,12 +99,74 @@ server.post("/wallet", async (request: Request, response: Response) => {
 
   return response.status(201).json(newWallet);
 });
- 
-AppDataSource.initialize().then(async () => {
-    console.log("database initialized");
- 
-    server.listen(SERVER_PORT, () => {
-        console.log(`servidor escutando na porta ${SERVER_PORT}`);
- 
+
+server.post("/wallet/transaction", async (request: Request, response: Response) => {
+    const walletTransactionController = new WalletTransactionController();
+    const transaction = await walletTransactionController.createTransaction(new TransactionDTO(
+      null,
+      request.body.amount,
+      null,
+      request.body.isCredit,
+      request.body.currency,
+      request.body.wallet,
+      new Date()
+    ));
+
+    return response.status(201).json(transaction);
+});
+
+server.get("/wallet/statement", async (request: Request, response: Response) => {
+  try {
+    const token = request.headers.authorization?.split(" ")[1];
+    const sessionController = new SessionController();
+    let userId = sessionController.verifyToken(token).userId;    
+    const walletTransactionController = new WalletTransactionController();
+    const statement = await walletTransactionController.getStatementByUser(userId);
+    return response.status(200).json(statement);
+  } catch (error) {
+    return response.status(401).json({
+      error: error.message,
     });
-}).catch(error => console.log(error))
+  }
+});
+
+server.get("/wallet/statement/currency/:currencyId", async (request: Request, response: Response) => {
+  try {
+    const currencyId = Number(request.params.currencyId);
+    const token = request.headers.authorization?.split(" ")[1];
+    const sessionController = new SessionController();
+    let userId = sessionController.verifyToken(token).userId;    
+    const walletTransactionController = new WalletTransactionController();
+    const statement = await walletTransactionController.getStatementByUserAndCurrency(userId,currencyId);
+    return response.status(200).json(statement);
+  } catch (error) {
+    return response.status(401).json({
+      error: error.message,
+    });
+  }
+});
+
+server.get("/wallet/statement/inCurrency/:currencyId", async (request: Request, response: Response) => {
+  try {
+    const currencyId = Number(request.params.currencyId);
+    const token = request.headers.authorization?.split(" ")[1];
+    const sessionController = new SessionController();
+    let userId = sessionController.verifyToken(token).userId;    
+    const walletTransactionController = new WalletTransactionController();
+    const statement = await walletTransactionController.getStatementInCurrency(userId, currencyId);
+    return response.status(200).json(statement);
+  } catch (error) {
+    return response.status(401).json({
+      error: error.message,
+    });
+  }
+});
+
+AppDataSource.initialize()
+  .then(async () => {
+    console.log("Banco de dados inicializado...");
+    server.listen(SERVER_PORT, () => {
+      console.log(`Servidor executando na porta ${SERVER_PORT}`);
+    });
+  })
+  .catch((error) => console.log(error));

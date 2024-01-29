@@ -1,30 +1,27 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from "typeorm"
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Wallet } from "./Wallet";
+import { Currency } from "./Currency";
 
 @Entity()
-export class Transaction {
+export class WalletTransaction {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  @ManyToOne(() => Currency, (currency) => currency)
+  currency: Currency;
 
-    @OneToOne(() => Wallet)
-    @JoinColumn()
-    wallet: Wallet;
+  @ManyToOne(() => Wallet, (wallet) => wallet)
+  wallet: Wallet;
 
-    @Column({
-        type: "numeric"
-    })
-    amount: number
+  @Column({type: "numeric"})
+  amount: number
 
-    @Column({
-        type: "numeric"
-    })
-    amountBRL: number
+  @Column({type: "numeric"})
+  amountBRL: number
 
-    @Column()
-    isCredit: boolean
+  @Column()
+  isCredit: boolean;
 
-    @Column()
-    createdAt: Date
+  @Column()
+  createdAt: Date;
 }
-

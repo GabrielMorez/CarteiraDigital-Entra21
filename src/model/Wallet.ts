@@ -11,8 +11,7 @@ export class Wallet {
     @Column()
     name: string;
     
-    @OneToOne(() => Currency)
-    @JoinColumn()
+    @ManyToOne(() => Currency, (currency) => currency)
     currency: Currency;
 
     @ManyToOne(() => User, (user) => user)

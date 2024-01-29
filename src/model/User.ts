@@ -14,7 +14,9 @@ export class User {
     })
     document: number;
 
-    @Column()
+    @Column({
+        unique: true
+    })
     email: string;
 
     @Column()
